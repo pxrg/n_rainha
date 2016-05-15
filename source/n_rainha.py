@@ -2,6 +2,7 @@
 
 import os
 import random
+import json
 
 
 class NRainha(object):
@@ -12,19 +13,41 @@ class NRainha(object):
             * Algoritmo genetico
     """
 
-    def __init__(self, n_rainha, qtd_amostras):
+    def __init__(self, n_rainha, qtd_amostras, armazenar_dados = True):
         super(NRainha, self).__init__()
         self.n_rainha = n_rainha
+        self.qtd_populacao = qtd_amostras
         self.tabuleiros_iniciais = []
         self.populacao = []
         # Parametros do algoritmo genetico
         self.mutacao = 0.05
         self.cruzamento = 0.9
         self._cache = {}
-        for x in xrange(qtd_amostras):
-            aux = self.criar_tabuleiro()
-            self.tabuleiros_iniciais.append(aux[::])
-            self.populacao.append(aux[::])
+        if not self.carregar_dados():
+            for x in xrange(qtd_amostras):
+                aux = self.criar_tabuleiro()
+                self.tabuleiros_iniciais.append(aux[::])
+                self.populacao.append(aux[::])
+            if armazenar_dados:
+                self.armazenar_dados()
+
+    def carregar_dados(self):
+        nome_arquivo = "n_rainha_n%s_p%s.json"%(self.n_rainha, self.qtd_populacao)
+        if os.path.exists(nome_arquivo):
+            with (open(nome_arquivo, 'r')) as _file_:
+                aux = _file_.read()
+                obj = json.loads(aux)
+                self.tabuleiros_iniciais = obj['data'][::]
+                self.populacao = obj['data'][::]
+            return True
+        else:
+            return False
+
+
+    def armazenar_dados(self):
+        nome_arquivo = "n_rainha_n%s_p%s.json"%(self.n_rainha, self.qtd_populacao)
+        with (open(nome_arquivo, 'w')) as _file_:
+            _file_.write(json.dumps({'data': self.tabuleiros_iniciais}))
 
     def calc_diag(self, linha, col):
         if self._cache.has_key((linha, col,)):
@@ -61,22 +84,37 @@ class NRainha(object):
             conflitos += self._funcao_objetivo_unitaria(tabuleiro, idx, indiv)
         return conflitos
 
-    def subida_encosta(self):
-        tabuleiro = self.populacao[0][::]
+    def _executar_subida_encosta(self, tabuleiro, indice_populacao):
         pos = 1
+        saida = {
+        'fo' : self.n_rainha * 999, 'tabuleiro': tabuleiro,
+        'indice': indice_populacao, 'iteracao': 0 }
+        fo = saida['fo']
         for count in xrange(100):
             for x in xrange(pos, self.n_rainha):
                 _fos_ = []
                 for y in xrange(self.n_rainha):
                     _fos_.append(self._funcao_objetivo_unitaria(tabuleiro, x, y))
+                    saida['iteracao'] += 1
                 min_val = min(_fos_)
                 tabuleiro[x] = _fos_.index(min_val)
-                if self._funcao_objetivo_tabuleiro(tabuleiro) == 0:
-                    return tabuleiro
-            if self._funcao_objetivo_tabuleiro(tabuleiro) == 0:
-                return tabuleiro
-        return None
+                fo = self._funcao_objetivo_tabuleiro(tabuleiro)
+                if saida['fo'] >= fo:
+                    saida['fo'] = fo
+                    saida['tabuleiro'] = tabuleiro
+                    saida['indice'] = indice_populacao
+                if fo == 0:
+                    return saida
+        return saida
 
+
+
+    def subida_encosta(self):
+        tabuleiro = self.populacao[0][::]
+        self.resultado_sb = []
+        for indice, item in enumerate(self.populacao):
+            self.resultado_sb.append(self._executar_subida_encosta(item[::], indice))
+        return self.resultado_sb
 
 
     def buscar_alg_genetico(self, geracao):
@@ -92,4 +130,4 @@ class NRainha(object):
                 else:
                     print ' x ',
             print ''
-                
+
