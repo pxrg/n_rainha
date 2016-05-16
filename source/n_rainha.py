@@ -19,6 +19,7 @@ class NRainha(object):
         self.qtd_populacao = qtd_amostras
         self.tabuleiros_iniciais = []
         self.populacao = []
+        self.qtd_iteracoes = 100
         # Parametros do algoritmo genetico
         self.mutacao = 0.05
         self.cruzamento = 0.9
@@ -49,6 +50,9 @@ class NRainha(object):
         with (open(nome_arquivo, 'w')) as _file_:
             _file_.write(json.dumps({'data': self.tabuleiros_iniciais}))
 
+    def criar_tabuleiro(self):
+        return [random.randint(0, self.n_rainha -1) for x in xrange(self.n_rainha)]
+
     def calc_diag(self, linha, col):
         if self._cache.has_key((linha, col,)):
             return self._cache.get((linha, col,))
@@ -66,12 +70,10 @@ class NRainha(object):
         self._cache[(linha, col,)] = diag
         return diag[::]
 
-
-    def criar_tabuleiro(self):
-        return [random.randint(0, self.n_rainha) for x in xrange(self.n_rainha)]
-
     def _funcao_objetivo_unitaria(self, pop_aux, linha, col):
         conflitos = pop_aux.count(col) -1 # Verifica conflitos na horizontal
+        if conflitos <= 0:
+            conflitos = 0
         diagonais = self.calc_diag(linha, col)
         for diag in diagonais:
             if pop_aux[diag[0]] == diag[1]:
@@ -90,7 +92,7 @@ class NRainha(object):
         'fo' : self.n_rainha * 999, 'tabuleiro': tabuleiro,
         'indice': indice_populacao, 'iteracao': 0 }
         fo = saida['fo']
-        for count in xrange(100):
+        for count in xrange(self.qtd_iteracoes):
             for x in xrange(pos, self.n_rainha):
                 _fos_ = []
                 for y in xrange(self.n_rainha):
@@ -107,14 +109,46 @@ class NRainha(object):
                     return saida
         return saida
 
-
-
     def subida_encosta(self):
-        tabuleiro = self.populacao[0][::]
+        # tabuleiro = self.populacao[0][::]
         self.resultado_sb = []
         for indice, item in enumerate(self.populacao):
             self.resultado_sb.append(self._executar_subida_encosta(item[::], indice))
         return self.resultado_sb
+
+    def calc_tempera(self, valor):
+        return self.qtd_iteracoes - valor
+
+    def calc_tempera_percent(self, valor):
+        return self.calc_tempera(valor) < random.randint(0, 100)
+
+    def tempera_simulada(self):
+        tabuleiro = self.populacao[0][::]
+        indice_populacao = 0
+        # self.resultado_ts = []
+        # return self.resultado_ts
+        pos = 1
+        saida = {
+        'fo' : self.n_rainha * 999, 'tabuleiro': tabuleiro,
+        'indice': indice_populacao, 'iteracao': 0 }
+        fo = saida['fo']
+        for count in xrange(self.qtd_iteracoes):
+            for x in xrange(pos, self.n_rainha):
+                _fos_ = []
+                for y in xrange(self.n_rainha):
+                    _fos_.append(self._funcao_objetivo_unitaria(tabuleiro, x, y))
+                    saida['iteracao'] += 1
+                min_val = min(_fos_)
+                tabuleiro[x] = _fos_.index(min_val)
+                fo = self._funcao_objetivo_tabuleiro(tabuleiro)
+                if self.calc_tempera_percent(count) or saida['fo'] >= fo:
+                    saida['fo'] = fo
+                    saida['tabuleiro'] = tabuleiro
+                    saida['indice'] = indice_populacao
+                    if fo == 0:
+                        return saida
+        return saida
+
 
 
     def buscar_alg_genetico(self, geracao):
