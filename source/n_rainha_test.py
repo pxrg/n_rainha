@@ -7,7 +7,8 @@ import unittest
 class NRainhaTest(unittest.TestCase):
     qtd_n_rainha = 6
     qtd_amostras = 10
-    DEBUG = False
+    DEBUG = True
+    # DEBUG = False
 
     def print_log(self, val):
         if self.DEBUG:
@@ -28,7 +29,7 @@ class NRainhaTest(unittest.TestCase):
         n_rainha_2 = NRainha(self.qtd_n_rainha, self.qtd_amostras)
         self.assertEquals(n_rainha.tabuleiros_iniciais, n_rainha_2.tabuleiros_iniciais)
 
-    def test_ExecutarSubidaDeEncostaEModificarTabuleiro(self):
+    def _test_ExecutarSubidaDeEncostaEModificarTabuleiro(self):
         n_rainha = NRainha(self.qtd_n_rainha, self.qtd_amostras)
         result = n_rainha.subida_encosta()
         self.assertEquals(self.qtd_amostras, len(result))
@@ -37,19 +38,13 @@ class NRainhaTest(unittest.TestCase):
             self.print_log(item)
             self.assertNotEquals(n_rainha.populacao[item['indice']], item['tabuleiro'])
 
-    def test_CalcularAleatoriedadeTemperaSimulada(self):
-        n_rainha = NRainha(self.qtd_n_rainha, self.qtd_amostras)
-        anterior = 100
-        for x in xrange(n_rainha.qtd_iteracoes):
-            val = n_rainha.calc_tempera(x)
-            self.assertLessEqual(val, anterior)
-            anterior = val
 
     def test_ExecutarTemperaSimuladaEModificarTabuleiro(self):
         n_rainha = NRainha(self.qtd_n_rainha, self.qtd_amostras)
         result = n_rainha.tempera_simulada()
         self.assertEquals(self.qtd_amostras, len(result))
         self.print_log("")
+        # self.print_log(result)
         for item in result:
             self.print_log(item)
             self.assertNotEquals(n_rainha.populacao[item['indice']], item['tabuleiro'])

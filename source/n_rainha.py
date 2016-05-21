@@ -44,7 +44,6 @@ class NRainha(object):
         else:
             return False
 
-
     def armazenar_dados(self):
         nome_arquivo = "n_rainha_n%s_p%s.json"%(self.n_rainha, self.qtd_populacao)
         with (open(nome_arquivo, 'w')) as _file_:
@@ -86,12 +85,13 @@ class NRainha(object):
             conflitos += self._funcao_objetivo_unitaria(tabuleiro, idx, indiv)
         return conflitos
 
+    def _criar_objeto_resultado(self, tabuleiro, indice_populacao):
+        return { 'fo' : self.n_rainha * 999, 'tabuleiro': tabuleiro,
+                       'indice': indice_populacao, 'iteracao': 0 }
+
     def _executar_subida_encosta(self, tabuleiro, indice_populacao):
         pos = 1
-        saida = {
-        'fo' : self.n_rainha * 999, 'tabuleiro': tabuleiro,
-        'indice': indice_populacao, 'iteracao': 0 }
-        fo = saida['fo']
+        saida = self._criar_objeto_resultado(tabuleiro, indice_populacao)
         for count in xrange(self.qtd_iteracoes):
             for x in xrange(pos, self.n_rainha):
                 _fos_ = []
@@ -109,39 +109,26 @@ class NRainha(object):
                     return saida
         return saida
 
-    def subida_encosta(self):
-        # tabuleiro = self.populacao[0][::]
-        self.resultado_sb = []
-        for indice, item in enumerate(self.populacao):
-            self.resultado_sb.append(self._executar_subida_encosta(item[::], indice))
-        return self.resultado_sb
-
-    def calc_tempera(self, valor):
-        return self.qtd_iteracoes - valor
-
-    def calc_tempera_percent(self, valor):
-        return self.calc_tempera(valor) < random.randint(0, 100)
-
-    def tempera_simulada(self):
-        tabuleiro = self.populacao[0][::]
-        indice_populacao = 0
-        # self.resultado_ts = []
-        # return self.resultado_ts
+    def _executar_tempera_simulada(self, tabuleiro, indice_populacao):
         pos = 1
-        saida = {
-        'fo' : self.n_rainha * 999, 'tabuleiro': tabuleiro,
-        'indice': indice_populacao, 'iteracao': 0 }
+        saida = self._criar_objeto_resultado(tabuleiro, indice_populacao)
         fo = saida['fo']
+        tempera_base = self.qtd_iteracoes * 0.9
         for count in xrange(self.qtd_iteracoes):
+            # Valor da tempera para a iteracao
+            tempera = (tempera_base - count)
             for x in xrange(pos, self.n_rainha):
                 _fos_ = []
-                for y in xrange(self.n_rainha):
-                    _fos_.append(self._funcao_objetivo_unitaria(tabuleiro, x, y))
-                    saida['iteracao'] += 1
-                min_val = min(_fos_)
-                tabuleiro[x] = _fos_.index(min_val)
+                if tempera > random.randint(0, 100):
+                    tabuleiro[x] = random.randint(0, self.n_rainha -1)
+                else:
+                    for y in xrange(self.n_rainha):
+                        _fos_.append(self._funcao_objetivo_unitaria(tabuleiro, x, y))
+                        saida['iteracao'] += 1
+                    min_val = min(_fos_)
+                    tabuleiro[x] = _fos_.index(min_val)
                 fo = self._funcao_objetivo_tabuleiro(tabuleiro)
-                if self.calc_tempera_percent(count) or saida['fo'] >= fo:
+                if saida['fo'] >= fo:
                     saida['fo'] = fo
                     saida['tabuleiro'] = tabuleiro
                     saida['indice'] = indice_populacao
@@ -150,6 +137,19 @@ class NRainha(object):
         return saida
 
 
+    def subida_encosta(self):
+        # tabuleiro = self.populacao[0][::]
+        self.resultado_sb = []
+        for indice, item in enumerate(self.populacao):
+            self.resultado_sb.append(self._executar_subida_encosta(item[::], indice))
+        return self.resultado_sb
+
+    def tempera_simulada(self):
+        # tabuleiro = self.populacao[0][::]
+        self.resultado_sb = []
+        for indice, item in enumerate(self.populacao):
+            self.resultado_sb.append(self._executar_tempera_simulada(item[::], indice))
+        return self.resultado_sb
 
     def buscar_alg_genetico(self, geracao):
         for ger in xrange(geracao):
